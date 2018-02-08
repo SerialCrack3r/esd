@@ -81,28 +81,27 @@ class Knocker :
         tcp_flags = fin + (syn << 1) + (rst << 2) + (psh << 3) + (ack << 4) + (urg << 5)
 
         # the ! in the pack format string means network order
-        tcp_header = pack('!HHLLBBHHH', source, dest, seq, ack_seq, offset_res, tcp_flags, window, check, urg_ptr)
+        tcp_hdr = pack('!HHLLBBHHH', source, dest, seq, ack_seq, offset_res, tcp_flags, window, check, urg_ptr)
 
         # pseudo header fields
         source_address = socket.inet_aton(source_ip)
         dest_address = socket.inet_aton(dest_ip)
         placeholder = 0
         protocol = socket.IPPROTO_TCP
-        tcp_length = len(tcp_header)
+        tcp_length = len(tcp_hdr)
 
-        psh = pack('!4s4sBBH', source_address, dest_address, placeholder, protocol, tcp_length);
-        psh = psh + tcp_header;
+        psh = pack('!4s4sBBH', source_address, dest_address, placeholder, protocol, tcp_length)
+        psh += tcp_hdr
 
-        # tcp_checksum = self.checksum(psh)
+        tcp_checksum = self.checksum(psh)
 
-        tcp_checksum = 0x2A3F
+        # tcp_checksum = 0x2A3F
 
         # make the tcp header again and fill the correct checksum
-        tcp_header = pack('!HHLLBBHHH', source, dest, seq, ack_seq, offset_res, tcp_flags, window, tcp_checksum,
-                          urg_ptr)
+        tcp_hdr = pack('!HHLLBBHHH', source, dest, seq, ack_seq, offset_res, tcp_flags, window, tcp_checksum, urg_ptr)
 
         # final full packet - syn packets dont have any data
-        packet = ip_header + tcp_header
+        packet = ip_header + tcp_hdr
 
         # Send the packet finally - the port specified has no effect
         print("sending packet...")
@@ -117,7 +116,7 @@ class Knocker :
         s = 0
         # loop taking 2 characters at a time
         for i in range(0, len(msg), 2):
-            w = (ord(msg[i]) << 8) + (ord(msg[i + 1]))
+            w = (ord(chr(int(msg[i]))) << 8) + (ord(chr(int(msg[i + 1]))))
             s += w
 
         s = (s >> 16) + (s & 0xffff)

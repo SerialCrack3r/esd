@@ -205,8 +205,9 @@ def configIptables(clean=True):
         # Clean all the previous rules
         for i in range(len(portSet)) :
             #remove the rules for the firewall
-            Popen(["iptables --delete INPUT -p tcp --dport %d -j LOG" % (portSet[i] ^ (_key * 25))],
+            op = Popen(["iptables --delete INPUT -p tcp --dport %d -j LOG" % (portSet[i] ^ (_key * 25))],
                   shell=True, stderr=subprocess.PIPE, stdout=subprocess.PIPE)
+            print("IPTABLES DELETE RESULT -> %s" % str(op.stdout.read()))
 
     #add this rule : "iptables -I INPUT -p tcp --dport [PORT_NUM] -j LOG"
     for i in range(len(portSet)) :
@@ -243,19 +244,24 @@ def main():
             print(B + "[*] tail log file : %s" % line)
             for i in range(len(portSet)) :
                 needle = portSet[i] ^ (_key * 25)
-                print(O + "[!] Needdle expected : %d" % needle + W)
+                # print(O + "[!] Needdle expected : %d" % needle + W)
                 if str(needle).encode(ENCODING) in line :
+                    port = needle ^ (_key * 25)  # the right port to open...
                     print(G + "[+] Someone is knocking at the heavens door..." + W)
                     print(G + "[+] The door knocked at is : %s" % str(portSet[i]) + W)
-                    print(G + "[+] The door saint Peter will open is : %s " % str(needle ^ (_key * 25)) + W)
-                    port = needle ^ (_key * 25)     # the right port to open...
+                    print(G + "[+] The door saint Peter will open is : %s " % str(port) + W)
+                    s.bind((host, port))
+                    s.listen(users)
+                    print(B + "[*] Waiting for connections on port %s ..." % str(port) + W)
                     knocked = True
                     break
+            if knocked :
+                break
 
     # the client has knocked at the heavens doors, we'll open'em up to it
 
-    s.bind((host, port))
-    s.listen(users)
+    # s.bind((host, port))
+    # s.listen(users)
     print('Listening for connections')
 
     _thread.start_new_thread(connect_users, ())
